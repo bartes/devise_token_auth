@@ -93,7 +93,6 @@ module DeviseTokenAuth::Concerns::User
   module ClassMethods
     protected
 
-
     def tokens_has_json_column_type?
       database_exists? && table_exists? && self.columns_hash['tokens'] && self.columns_hash['tokens'].type.in?([:json, :jsonb])
     end
@@ -158,7 +157,7 @@ module DeviseTokenAuth::Concerns::User
       updated_at && last_token &&
 
       # ensure that previous token falls within the batch buffer throttle time of the last request
-      Time.parse(updated_at) > Time.now - DeviseTokenAuth.batch_request_buffer_throttle &&
+      Time.parse(updated_at.to_s) > Time.now - DeviseTokenAuth.batch_request_buffer_throttle &&
 
       # ensure that the token is valid
       ::BCrypt::Password.new(last_token) == token
@@ -182,7 +181,7 @@ module DeviseTokenAuth::Concerns::User
       token:      token_hash,
       expiry:     expiry,
       last_token: last_token,
-      updated_at: Time.now
+      updated_at: Time.now.to_s
     }
 
     return build_auth_header(token, client_id)
@@ -223,7 +222,7 @@ module DeviseTokenAuth::Concerns::User
 
 
   def extend_batch_buffer(token, client_id)
-    self.tokens[client_id]['updated_at'] = Time.now
+    self.tokens[client_id]['updated_at'] = Time.now.to_s
 
     return build_auth_header(token, client_id)
   end
