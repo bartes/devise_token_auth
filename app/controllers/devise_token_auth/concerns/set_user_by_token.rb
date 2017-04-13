@@ -113,14 +113,19 @@ module DeviseTokenAuth::Concerns::SetUserByToken
         if @is_batch_request
           auth_header = @resource.extend_batch_buffer(@token, @client_id)
 
-        # update Authorization response header with new token
+          # Do not return token for batch requests to avoid invalidated
+          # tokens returned to the client in case of race conditions.
+          # Use a blank string for the header to still be present and
+          # being passed in a XHR response in case of
+          # 304 Not Modified responses.
+          auth_header[DeviseTokenAuth.headers_names[:"access-token"]] = ' '
+          auth_header[DeviseTokenAuth.headers_names[:"expiry"]] = ' '
         else
           auth_header = @resource.create_new_auth_token(@client_id)
-
-          # update the response header
-          response.headers.merge!(auth_header)
         end
 
+        # update the response header
+        response.headers.merge!(auth_header)
       end # end lock
 
     end
@@ -145,6 +150,6 @@ module DeviseTokenAuth::Concerns::SetUserByToken
     !params[:unbatch] &&
     user.tokens[client_id] &&
     user.tokens[client_id]['updated_at'] &&
-    Time.parse(user.tokens[client_id]['updated_at']) > @request_started_at - DeviseTokenAuth.batch_request_buffer_throttle
+    Time.parse(user.tokens[client_id]['updated_at'].to_s) > @request_started_at - DeviseTokenAuth.batch_request_buffer_throttle
   end
 end
